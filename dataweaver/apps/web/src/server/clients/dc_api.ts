@@ -33,9 +33,9 @@ export const fetchObservations = async (
   entityDcids: string[],
   signal?: AbortSignal,
 ): Promise<ObservationResponse> => {
-  const apiKey = process.env.DATA_COMMONS_API_KEY;
+  const apiKey = process.env.DATACOMMONS_API_KEY;
   if (!apiKey)
-    throw new Error('DATA_COMMONS_API_KEY environment variable is not set');
+    throw new Error('DATACOMMONS_API_KEY environment variable is not set');
 
   const config = getServiceConfig();
   const baseUrl = config.api.dataCommons.baseUrl;
