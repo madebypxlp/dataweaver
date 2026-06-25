@@ -17,10 +17,6 @@ export interface ChartDatum {
   value: number;
 }
 
-// TODO: Get dynamically instead of hard coding here
-const CHART_WIDTH = 356;
-const CHART_HEIGHT = 200;
-
 export interface CardChartProps extends Pick<CardState, 'isLoading'> {
   title?: string;
   description?: string;
@@ -68,13 +64,7 @@ export const CardChart = ({
               {
                 icon: IconLineGraph,
                 label: 'Chart',
-                children: (
-                  <DataChartLine
-                    data={chartData}
-                    width={CHART_WIDTH}
-                    height={CHART_HEIGHT}
-                  />
-                ),
+                children: <DataChartLine data={chartData} />,
               },
               {
                 icon: IconTable,
