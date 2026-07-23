@@ -56,6 +56,25 @@ export const buildPlaceSummaries = (results: QueryResult[]): PlaceSummary[] => {
       const observations = ts?.facets[0]?.observations ?? [];
       const unit = ts?.facets[0]?.unit ?? '';
 
+      if (observations.length === 0) {
+        const earliestDate = ts?.facets[0]?.earliestDate ?? '';
+        const latDate = ts?.facets[0]?.latestDate ?? '';
+        const dateRange =
+          earliestDate && latDate ? `${earliestDate} – ${latDate}` : '';
+
+        return {
+          name: v.name,
+          dcid: v.dcid,
+          unit,
+          latestValue: 0,
+          latestDate: '',
+          minValue: 0,
+          maxValue: 0,
+          observationCount: 0,
+          dateRange,
+        };
+      }
+
       let latestValue = 0;
       let latestDate = '';
       let minValue = Number.POSITIVE_INFINITY;
@@ -79,10 +98,10 @@ export const buildPlaceSummaries = (results: QueryResult[]): PlaceSummary[] => {
         name: v.name,
         dcid: v.dcid,
         unit,
-        latestValue: observations.length > 0 ? latestValue : 0,
+        latestValue,
         latestDate,
-        minValue: observations.length > 0 ? minValue : 0,
-        maxValue: observations.length > 0 ? maxValue : 0,
+        minValue,
+        maxValue,
         observationCount: observations.length,
         dateRange,
       };
