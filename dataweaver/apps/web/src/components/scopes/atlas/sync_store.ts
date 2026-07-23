@@ -5,6 +5,7 @@ import type { ChartSeries } from '~/components/elements/card/chart/chart';
 import type {
   CardEntry,
   CardType,
+  ChartStyle,
   ComparisonResult,
   FacetInfo,
   QueryResult,
@@ -166,6 +167,7 @@ export const deriveContentForCard = (
   variableDcid?: string,
   comparison?: ComparisonResult,
   allResults?: Record<string, QueryResult>,
+  chartStyle?: ChartStyle,
 ): AtlasContent | null => {
   if (type === 'loading') {
     return deriveLoadingContent(placeholderTitle ?? '');
@@ -175,7 +177,10 @@ export const deriveContentForCard = (
     return deriveComparisonContent(comparison);
   }
   if (comparison && type === 'chart' && variableDcid && allResults) {
-    return deriveComparisonChartContent(comparison, variableDcid, allResults);
+    return withChartStyle(
+      deriveComparisonChartContent(comparison, variableDcid, allResults),
+      chartStyle,
+    );
   }
   if (!result) return null;
   switch (type) {
@@ -183,11 +188,24 @@ export const deriveContentForCard = (
       return deriveTableContent(result);
     case 'notes':
       return deriveNotesContent(result);
-    case 'chart':
-      return variableDcid
+    case 'chart': {
+      const content = variableDcid
         ? deriveChartContentForVariable(result, variableDcid)
         : deriveChartContent(result);
+      return withChartStyle(content, chartStyle);
+    }
   }
+};
+
+/** Apply a persisted chart style override to derived chart content. */
+const withChartStyle = (
+  content: AtlasContent | null,
+  chartStyle?: ChartStyle,
+): AtlasContent | null => {
+  if (content && chartStyle && content.variant === 'chart') {
+    return { ...content, chartStyle };
+  }
+  return content;
 };
 
 // --- Sync hook ---
@@ -232,6 +250,7 @@ export const useStoreShapeSync = () => {
             card.variableDcid,
             comparison,
             isComparison ? node?.results : undefined,
+            card.chartStyle,
           );
           if (!content) continue;
 
@@ -259,6 +278,7 @@ export const useStoreShapeSync = () => {
             card.variableDcid,
             comparison,
             isComparison ? node?.results : undefined,
+            card.chartStyle,
           );
           if (!content) continue;
 
@@ -266,6 +286,21 @@ export const useStoreShapeSync = () => {
           if (handle) {
             const { variant: _, ...updateProps } = content;
             handle.update(updateProps as Parameters<typeof handle.update>[0]);
+          }
+        }
+
+        // Detect cards whose chartStyle changed
+        for (const [shapeId, card] of Object.entries(cards)) {
+          const prevCard = prevCards[shapeId];
+          if (!prevCard || prevCard.chartStyle === card.chartStyle) continue;
+          // Skip cards already handled by the type-change block above.
+          if (prevCard.type !== card.type) continue;
+
+          const handle = handles.get(shapeId);
+          if (handle) {
+            handle.update({ chartStyle: card.chartStyle } as Parameters<
+              typeof handle.update
+            >[0]);
           }
         }
 

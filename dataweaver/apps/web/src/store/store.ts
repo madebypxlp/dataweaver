@@ -4,6 +4,7 @@ import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import type {
   CardEntry,
   CardType,
+  ChartStyle,
   ComparisonResult,
   FollowUp,
   FollowUpContext,
@@ -58,7 +59,7 @@ export interface AtlasStore {
     variableDcid: string,
   ) => void;
   cardUnregister: (shapeId: string) => void;
-  cardClearFocusTarget: () => void;
+  cardSetChartStyle: (shapeId: string, chartStyle: ChartStyle) => void;
   queryCancel: (nodeId: string) => void;
   nodeDismissFollowUp: (nodeId: string) => void;
   querySetProcessing: (val: boolean) => void;
@@ -350,8 +351,21 @@ export const useAtlasStore = create<AtlasStore>()(
           );
         },
 
-        cardClearFocusTarget: () => {
-          set({ focusTarget: null }, undefined, 'cardClearFocusTarget');
+        cardSetChartStyle: (shapeId, chartStyle) => {
+          set(
+            (state) => {
+              const card = state.cards[shapeId];
+              if (!card) return state;
+              return {
+                cards: {
+                  ...state.cards,
+                  [shapeId]: { ...card, chartStyle },
+                },
+              };
+            },
+            undefined,
+            'cardSetChartStyle',
+          );
         },
 
         queryCancel: (nodeId) => {
