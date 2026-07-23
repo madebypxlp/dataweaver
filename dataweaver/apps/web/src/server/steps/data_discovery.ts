@@ -198,10 +198,10 @@ export const runToolLoop = async (
           try {
             const resultText = toolResult?.content?.[0]?.text;
             if (resultText) {
-              const parsed = JSON.parse(resultText);
+              const toolPayload = JSON.parse(resultText);
               const placesWithData =
-                parsed.variables?.[0]?.places_with_data ||
-                parsed.topics?.[0]?.places_with_data;
+                toolPayload.variables?.[0]?.places_with_data ||
+                toolPayload.topics?.[0]?.places_with_data;
               if (placesWithData && placesWithData.length > 0) {
                 resolvedPlaceDcid = placesWithData[0];
               }
