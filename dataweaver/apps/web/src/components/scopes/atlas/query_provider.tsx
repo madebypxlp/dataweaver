@@ -182,12 +182,7 @@ export const QueryProvider = ({ children }: QueryProviderProps) => {
       }
 
       case STREAM_EVENT.complete: {
-        const remaining: string[] = [];
-        for (const id of active.cardIds) {
-          remaining.push(id);
-        }
-
-        queryComplete(active.nodeId, remaining);
+        queryComplete(active.nodeId, active.cardIds);
         querySetProcessing(false);
         querySetStatus(event.message);
         activeQueryRef.current = null;
