@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { createSSEResponse } from '~/server/create_sse_stream';
 import {
   buildPlaceSummaries,
   comparePlaces,
@@ -9,7 +10,6 @@ import {
   type QueryResult,
   STATUS,
   STREAM_EVENT,
-  type StreamEvent,
 } from '~/server/types';
 
 export async function POST(request: NextRequest) {
@@ -48,60 +48,27 @@ export async function POST(request: NextRequest) {
   ];
   const topic = variableNames.join(', ') || 'Data comparison';
 
-  const encoder = new TextEncoder();
-  const signal = request.signal;
+  return createSSEResponse(async (emit, signal) => {
+    emit({
+      type: STREAM_EVENT.status,
+      message: STATUS.comparingPlaces,
+    });
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const emit = (event: StreamEvent) => {
-        controller.enqueue(
-          encoder.encode(
-            `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`,
-          ),
-        );
-      };
+    const summaries = buildPlaceSummaries(results);
+    const comparisonResult = await comparePlaces({
+      query,
+      topic,
+      summaries,
+    });
+    comparisonResult.notesHtml = renderComparisonHtml(comparisonResult);
 
-      try {
-        emit({
-          type: STREAM_EVENT.status,
-          message: STATUS.comparingPlaces,
-        });
+    if (signal.aborted) return;
 
-        const summaries = buildPlaceSummaries(results);
-        const comparisonResult = await comparePlaces({
-          query,
-          topic,
-          summaries,
-        });
-        comparisonResult.notesHtml = renderComparisonHtml(comparisonResult);
+    emit({
+      type: STREAM_EVENT.comparisonResult,
+      result: comparisonResult,
+    });
 
-        if (signal.aborted) {
-          controller.close();
-          return;
-        }
-
-        emit({
-          type: STREAM_EVENT.comparisonResult,
-          result: comparisonResult,
-        });
-
-        emit({ type: STREAM_EVENT.complete, message: STATUS.complete });
-        controller.close();
-      } catch (err: unknown) {
-        if (!signal.aborted) {
-          const message = err instanceof Error ? err.message : 'Unknown error';
-          emit({ type: STREAM_EVENT.error, message });
-        }
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-    },
-  });
+    emit({ type: STREAM_EVENT.complete, message: STATUS.complete });
+  }, request.signal);
 }
